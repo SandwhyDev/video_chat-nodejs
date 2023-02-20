@@ -15,12 +15,16 @@
 
 .header {
   display: flex;
-  justify-content: center;
+  justify-content: space-around;
   align-items: center;
   height: 8vh;
   position: relative;
   width: 100%;
   background-color: var(--main-darklg);
+}
+
+.hidden {
+  visibility: hidden;
 }
 
 .logo > h3 {
@@ -107,6 +111,7 @@ video {
 }
 
 .main__message_container {
+  position: relative;
   padding: 1rem;
   display: flex;
   align-items: center;
@@ -146,6 +151,7 @@ video {
 }
 
 .message > span {
+  width: fit-content;
   background-color: #eeeeee;
   margin: 1rem 0;
   padding: 1rem;
@@ -161,6 +167,9 @@ video {
 #showChat {
   display: none;
 }
+#send:hover {
+  cursor: pointer;
+}
 
 .header__back {
   display: none;
@@ -169,6 +178,63 @@ video {
   top: 17px;
   left: 28px;
   color: #fff;
+}
+#send {
+  position: relative;
+}
+#image-container {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  bottom: 70px;
+  left: 20px;
+}
+
+.src {
+  background-color: #f6484a;
+}
+.custom-file-input::-webkit-file-upload-button {
+  visibility: hidden;
+}
+.custom-file-input::before {
+  content: "+";
+  position: absolute;
+  top: 2px;
+  left: 7px;
+  display: inline-block;
+  background: linear-gradient(top, #f9f9f9, #e3e3e3);
+  padding: 5px 8px;
+  outline: none;
+  white-space: nowrap;
+  -webkit-user-select: none;
+  cursor: pointer;
+  text-shadow: 1px 1px #fff;
+  font-weight: 400;
+  font-size: 24pt;
+  width: 100%;
+}
+
+.image_message {
+  background-color: #2f80ec;
+  width: 100px;
+  height: 100px;
+  margin-top: 10px;
+}
+#chatsaya {
+  /* background-color: #161d29; */
+  align-self: flex-end;
+  text-align: right;
+}
+
+#chatsaya span {
+  align-self: flex-end;
+
+  width: fit-content;
+}
+
+.keluar {
+  transform: rotate(180deg);
+  transform: rotateY(180deg);
 }
 
 @media (max-width: 700px) {

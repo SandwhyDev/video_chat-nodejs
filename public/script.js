@@ -1,4 +1,5 @@
-const socket = io("/");
+const socket = io();
+
 function uuid() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     var r = (Math.random() * 16) | 0,
@@ -7,18 +8,13 @@ function uuid() {
   });
 }
 
-const userStatus = {
-  microphone: false,
-  mute: false,
-  username: user,
-  online: false,
-};
-
 const videoGrid = document.getElementById("video-grid");
 const myVideo = document.createElement("video");
 const showChat = document.querySelector("#showChat");
 const backBtn = document.querySelector(".header__back");
 myVideo.muted = true;
+let people = [];
+let userJoin = [];
 
 backBtn.addEventListener("click", () => {
   document.querySelector(".main__left").style.display = "flex";
@@ -37,16 +33,10 @@ showChat.addEventListener("click", () => {
 // const user = prompt("Enter your name");
 // const user = uuid();
 
-socket.on("send", function (data) {
-  // console.log("suaraaaa ", data);
-  var audio = new Audio(data);
-  audio.play();
-});
-
 var peer = new Peer({
-  host: "127.0.0.1",
+  host: "/",
   port: 3030,
-  path: "/peerjs",
+  path: "/peer",
   config: {
     iceServers: [
       { url: "stun:stun01.sipphone.com" },
@@ -71,10 +61,14 @@ var peer = new Peer({
     ],
   },
 
-  debug: 3,
+  debug: true,
 });
 
+peer._debug = false;
+
 let myVideoStream;
+
+let AllUser = [];
 
 navigator.mediaDevices
   .getUserMedia({
@@ -83,104 +77,191 @@ navigator.mediaDevices
   })
   .then((stream) => {
     myVideoStream = stream;
-    addVideoStream(myVideo, stream);
+    const addedUsers = [];
 
-    var madiaRecorder = new MediaRecorder(stream);
-    madiaRecorder.start();
+    // punya user sendiri
+    addVideoStream(myVideo, stream, user);
 
-    var audioChunks = [];
+    // peer.on("call", (call) => {
+    //   call.answer(stream, { test: "asdasd" });
 
-    madiaRecorder.addEventListener("dataavailable", function (event) {
-      audioChunks.push(event.data);
-    });
+    //   const video = document.createElement("video");
 
-    madiaRecorder.addEventListener("stop", function () {
-      var audioBlob = new Blob(audioChunks);
+    //   call.on("stream", (userVideoStream) => {
+    //     // tambahkan user yang sudah terkoneksi
 
-      audioChunks = [];
+    //     addedUsers.forEach((addedUser) => {
+    //       if (
+    //         $(document)
+    //           .find("#video-grid")
+    //           .find("video[id='" + addedUser + "']").length == 0
+    //       ) {
+    //         addVideoStream(
+    //           document.createElement("video"),
+    //           userVideoStream,
+    //           addedUser
+    //         );
+    //       } else {
+    //         // console.log(4);
+    //       }
+    //     });
 
-      var fileReader = new FileReader();
-      fileReader.readAsDataURL(audioBlob);
-      fileReader.onloadend = function () {
-        if (!userStatus.microphone) return;
+    //   });
+    // });
 
-        var base64String = fileReader.result;
-        // console.log("test suara", user, base64String);
-        socket.emit("voice", base64String);
-      };
+    // tambahkan user baru
+    socket.on("participants", (userJoin) => {
+      userJoin.forEach((e) => {
+        // console.log(
+        //   $(document)
+        //     .find("#video-grid")
+        //     .find("video[id='" + e.name + "']")
+        // );
 
-      madiaRecorder.start();
-
-      setTimeout(function () {
-        madiaRecorder.stop();
-      }, 1000);
-    });
-
-    setTimeout(function () {
-      madiaRecorder.stop();
-    }, 1000);
-
-    // console.log("testtttt", stream);
-
-    peer.on("call", (call) => {
-      console.log("someone call me", call);
-      call.answer(stream);
-      const video = document.createElement("video");
-      video.setAttribute("id", user);
-      video.setAttribute("controls", true);
-
-      call.on("stream", (userVideoStream) => {
-        addVideoStream(video, userVideoStream);
+        // cek jika e.name dengan user sekarang
+        if (e.name !== user && !addedUsers.includes(e.name)) {
+          if (
+            $(document)
+              .find("#video-grid")
+              .find("video[id='" + e.name + "']").length == 0
+          ) {
+            addedUsers.push(e.name);
+            addVideoStream(
+              document.createElement("video"),
+              userVideoStream,
+              e.name
+            );
+          } else {
+            // console.log(3);
+          }
+        }
       });
     });
 
-    socket.on("user-connected", (userId) => {
-      connectToNewUser(userId, stream);
+    socket.on("user-connected", (userId, userName) => {
+      console.log(userName);
+      connectToNewUser(userId, stream, userName);
     });
   });
 
-const connectToNewUser = (userId, stream) => {
-  // console.log("I call someone" + userId);
+const connectToNewUser = (userId, stream, userName) => {
+  let userJoin = [];
+
+  userJoin.push(userName);
+
+  socket.emit("ask-join", userId, userName);
+
   const call = peer.call(userId, stream);
   const video = document.createElement("video");
-  video.setAttribute("id", userId);
-  video.setAttribute("controls", true);
-
   call.on("stream", (userVideoStream) => {
-    addVideoStream(video, userVideoStream);
+    // untuk ke host
+    addVideoStream(video, userVideoStream, userName);
   });
 };
 
+socket.on("ijin host", (idUser, userName) => {
+  // console.log(`${userName} ingin join`);
+  let ijin = confirm(`${userName} ingin join`);
+
+  if (!ijin) {
+    socket.emit("ijin masuk", false, userName, idUser);
+    return false;
+  }
+
+  socket.emit("ijin masuk", true, userName, idUser);
+});
+
 peer.on("open", (id) => {
   // console.log("my id is" + id);
+
   socket.emit("join-room", ROOM_ID, id, user);
 });
 
-const addVideoStream = (video, stream) => {
+const addVideoStream = (video, stream, user) => {
   video.srcObject = stream;
   video.addEventListener("loadedmetadata", () => {
     video.play();
+    video.id = user;
 
+    console.log(video);
     videoGrid.append(video);
   });
 };
 
 let text = document.querySelector("#chat_message");
 let send = document.getElementById("send");
-let image = document.getElementById("image-container");
+let foto = $("#image-container");
 let messages = document.querySelector(".messages");
+let imageTest = document.querySelector("#photo");
+const imageimage = $("#photo");
+var sendFoto = "";
 
-send.addEventListener("click", (e) => {
-  if (text.value.length !== 0) {
-    socket.emit("message", text.value);
-    text.value = "";
-    image.innerHTML = "";
+function batalSendImage(filename) {
+  socket.emit("delete file", filename);
+  foto.empty();
+  sendFoto = "";
+}
+
+imageimage.on("change", () => {
+  const file = imageimage[0].files[0];
+  let filename = URL.createObjectURL(file);
+
+  const reader = new FileReader();
+
+  reader.readAsArrayBuffer(file);
+
+  reader.onload = () => {
+    socket.emit("send file", {
+      name: file.name,
+      data: reader.result,
+      size: file.size,
+      mimetype: file.type,
+    });
+  };
+
+  socket.on("gambar", (file) => {
+    sendFoto = file;
+
+    const image = $("<img>").attr(
+      "src",
+      `http://localhost:3030/images/${file}`
+    );
+
+    const BatalSend = `<p class="batal-send-image" onclick="batalSendImage('${file}')">X</p>`;
+
+    foto.html(image).append(BatalSend);
+  });
+});
+
+send.addEventListener("click", async (e) => {
+  if (text.value.length !== 0 && sendFoto != null) {
+    socket.emit("message", text.value, sendFoto);
+
+    console.log(foto);
+    text.value = await "";
+    await foto.empty();
+    sendFoto = await "";
+  } else if (text.value.length === 0 && sendFoto === null) {
+    return false;
+  } else if (sendFoto.length != 0 && text.value.length === 0) {
+    console.log(sendFoto.length);
+    socket.emit("message", text.value, sendFoto);
+    // console.log("test foto doang");
+    await foto.empty();
+
+    sendFoto = await "";
   }
 });
 
 text.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && text.value.length !== 0) {
+    socket.emit("message", text.value, sendFoto);
+    text.value = "";
+
+    foto.removeAttr("src");
+  } else if (e.key === "Enter" && text.value.length !== 0) {
     socket.emit("message", text.value);
+
     text.value = "";
   }
 });
@@ -192,19 +273,11 @@ const stopVideo = document.querySelector("#stopVideo");
 muteButton.addEventListener("click", () => {
   const enabled = myVideoStream.getAudioTracks()[0].enabled;
   if (enabled) {
-    console.log("mati");
-    userStatus.microphone = false;
-
     myVideoStream.getAudioTracks()[0].enabled = false;
     html = `<i class="fas fa-microphone-slash"></i>`;
     muteButton.classList.toggle("background__red");
     muteButton.innerHTML = html;
   } else {
-    console.log("nyala");
-    userStatus.microphone = true;
-
-    // socket.emit("voice", uuid());
-
     myVideoStream.getAudioTracks()[0].enabled = true;
     html = `<i class="fas fa-microphone"></i>`;
     muteButton.classList.toggle("background__red");
@@ -230,22 +303,73 @@ stopVideo.addEventListener("click", () => {
 inviteButton.addEventListener("click", (e) => {
   prompt(
     "Copy this link and send it to people you want to meet with",
-    window.location.href
+    window.location.href.split("/")[3]
   );
 });
 
-socket.on("createMessage", (message, image, userName) => {
-  console.log(userName, message);
+socket.on("createMessage", (message, sendFoto, userName) => {
+  console.log(userName, message.length);
+  console.log("foto ", sendFoto);
 
-  if (!image === null) {
-    messages.innerHTML =
-      messages.innerHTML +
-      `<div class="message">
-        <b><i class="far fa-user-circle"></i> <span> 
-        ${userName === user ? "me" : userName}</span> </b>
-        <div class="image_message"></div>
+  if (sendFoto.length != 0 && message.length != 0) {
+    console.log("test foto dan text");
+
+    {
+      userName === user
+        ? (messages.innerHTML =
+            messages.innerHTML +
+            `<div class="message" id="chatsaya">
+        <b><i class="far fa-user-circle"></i> <span> ${
+          userName === user ? "me" : userName
+        }</span> </b>
+        <div class="image_message">
+             <img src="http://localhost:3030/images/${sendFoto}" alt="Girl in a jacket" >
+             </div>
+
         <span>${message} </span>
-    </div>`;
+    </div>`)
+        : (messages.innerHTML =
+            messages.innerHTML +
+            `<div class="message">
+      <b><i class="far fa-user-circle"></i> <span> ${
+        userName === user ? "me" : userName
+      }</span> </b>
+      <div class="image_message">
+           <img src="http://localhost:3030/images/${sendFoto}" alt="Girl in a jacket" >
+           </div>
+
+      <span>${message} </span>
+  </div>`);
+    }
+    return;
+  } else if (sendFoto.length != 0 && message.length === 0) {
+    console.log("test foto doang");
+    {
+      userName === user
+        ? (messages.innerHTML =
+            messages.innerHTML +
+            `<div class="message" id="chatsaya">
+        <b><i class="far fa-user-circle"></i> <span> ${
+          userName === user ? "me" : userName
+        }</span> </b>
+        <div class="image_message">
+             <img src="http://localhost:3030/images/${sendFoto}" alt="Girl in a jacket" >
+             </div>
+
+    </div>`)
+        : (messages.innerHTML =
+            messages.innerHTML +
+            `<div class="message">
+      <b><i class="far fa-user-circle"></i> <span> ${
+        userName === user ? "me" : userName
+      }</span> </b>
+      <div class="image_message">
+           <img src="http://localhost:3030/images/${sendFoto}" alt="Girl in a jacket" >
+           </div>
+
+  </div>`);
+    }
+    return;
   } else {
     {
       userName === user
@@ -253,9 +377,9 @@ socket.on("createMessage", (message, image, userName) => {
             messages.innerHTML +
             `<div class="message" id="chatsaya">
         <b><i class="far fa-user-circle"></i> <span> ${
-          userName === user ? "saya" : userName
+          userName === user ? "me" : userName
         }</span> </b>
-        <span>${message} </span>
+        <span>${message}</span>
     </div>`)
         : (messages.innerHTML =
             messages.innerHTML +
@@ -266,12 +390,27 @@ socket.on("createMessage", (message, image, userName) => {
       <span>${message} </span>
   </div>`);
     }
+    return;
   }
 });
 
-// socket.on("keluar", (data) => {
-//   console.log(`user ${data} keluar`);
-//   // console.log(videoGrid.children.namedItem(data).remove());
-//   // videoGrid.children.item(1).remove();
-//   videoGrid.children.namedItem(data).remove();
-// });
+socket.on("finale", (message, user, participants) => {
+  if (message === false) {
+    console.log(message, user);
+    window.location.href = "/";
+    return;
+  } else {
+    // console.log(participants);
+    return;
+  }
+});
+
+socket.on("user-disconnected", (userId, userName) => {
+  console.log(userName + " keluar ");
+  const video = document.getElementById(userName);
+
+  console.log(video);
+  if (video) {
+    video.remove();
+  }
+});

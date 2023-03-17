@@ -12,6 +12,16 @@
   margin: 0;
   padding: 0;
 }
+.container {
+  color: white;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--main-dark);
+}
 
 .header {
   display: flex;
@@ -183,13 +193,21 @@ video {
   position: relative;
 }
 #image-container {
-  width: 100px;
+  padding: 10px;
+  width: fit-content;
   height: 100px;
   position: absolute;
   bottom: 70px;
   left: 20px;
 }
 
+.batal-send-image {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  color: white;
+  cursor: pointer;
+}
 .src {
   background-color: #f6484a;
 }
@@ -215,7 +233,6 @@ video {
 }
 
 .image_message {
-  background-color: #2f80ec;
   width: 100px;
   height: 100px;
   margin-top: 10px;

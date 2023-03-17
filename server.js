@@ -1,10 +1,11 @@
 const express = require("express");
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
-const path = require("path");
 const passport = require("passport");
-const helmet = require("helmet");
 const { Issuer, Strategy } = require("openid-client");
+const fs = require("fs");
+const { ExpressPeerServer } = require("peer");
+const path = require("path");
 
 const app = express();
 const server = require("http").Server(app);
@@ -15,9 +16,9 @@ const io = require("socket.io")(server, {
     origin: "*",
   },
 });
-const { ExpressPeerServer } = require("peer");
 const opinions = {
   debug: true,
+  port: 3030,
 };
 const isLoggedIn = (req, res, next) => {
   // console.log(req.session);
@@ -30,7 +31,7 @@ const isLoggedIn = (req, res, next) => {
   next();
 };
 
-app.use("/peerjs", ExpressPeerServer(server, opinions));
+app.use("/peer", ExpressPeerServer(server, opinions));
 app.use(express.static("public"));
 app.use(cookieParser());
 app.use(
@@ -55,18 +56,10 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 passport.serializeUser((user, done) => {
-  // console.log("-----------------------------");
-  // console.log("serialize user");
-  // console.log(user);
-  // console.log("-----------------------------");
   done(null, user);
 });
 
 passport.deserializeUser((user, done) => {
-  // console.log("-----------------------------");
-  // console.log("deserialize user");
-  // console.log(user);
-  // console.log("-----------------------------");
   done(null, user);
 });
 
@@ -106,7 +99,7 @@ Issuer.discover("http://localhost:9000/oidc").then(function (oidcIssuer) {
 
 app.get("/login/callback", (req, res, next) => {
   passport.authenticate("oidc", {
-    successRedirect: `/${uuidv4()}`,
+    successRedirect: `/home`,
     failureRedirect: "/",
   })(req, res, next);
 });
@@ -114,16 +107,20 @@ app.get("/login/callback", (req, res, next) => {
 app.get(
   "/",
   (req, res, next) => {
-    console.log("-----------------------------");
-    console.log("Login Handler Started");
     next();
   },
   passport.authenticate("oidc", { scope: "openid" })
 );
 
-// app.get("/", (req, res) => {
-//   res.redirect(`/${uuidv4()}`);
-// });
+app.get("/home", isLoggedIn, (req, res) => {
+  // console.log(req.user.userinfo.sub);
+  res.render("home", {
+    user: req.user.userinfo.sub,
+    token: req.user.tokenSet.id_token,
+    post_logout: req.user.rahasia.post_logout_redirect_uris,
+    allowed: true,
+  });
+});
 
 app.get("/:room", isLoggedIn, (req, res) => {
   // console.log(req.user.userinfo.sub);
@@ -135,35 +132,103 @@ app.get("/:room", isLoggedIn, (req, res) => {
   });
 });
 
+// app.get("/", (req, res) => {
+//   // console.log(req.user.userinfo.sub);
+//   res.render("test");
+// });
+
+const rooms = {};
+const joinRequests = {};
+
 io.on("connection", (socket) => {
-  socket.on("join-room", (roomId, userId, userName) => {
-    console.log(userId);
+  socket.on("join-room", (roomId, userId, userName, stream) => {
+    // Jika room belum memiliki host, maka user yang bergabung akan menjadi host
+    if (!rooms[roomId]) {
+      rooms[roomId] = { host: userName, participants: [] };
+    }
+
+    // Dapatkan informasi host untuk room saat ini
+    const hostroom = rooms[roomId].host;
+
+    // Tambahkan user ke daftar participants
+    if (hostroom === userName) {
+      rooms[roomId].participants.push({ id: userId, name: userName });
+    }
 
     socket.join(roomId);
+    socket.join(userId);
+    socket.join(userName);
 
     setTimeout(() => {
-      socket.to(roomId).broadcast.emit("user-connected", userId);
+      socket
+        .to(roomId)
+        .broadcast.emit(
+          "user-connected",
+          userId,
+          userName,
+          roomId,
+          hostroom,
+          stream
+        );
     }, 1000);
+
+    socket.on("send file", (file) => {
+      const fileName = uuidv4() + "." + file.mimetype.split("/")[1];
+      const fileData = Buffer.from(new Uint8Array(file.data));
+
+      fs.writeFile(`./public/images/${fileName}`, fileData, async (err) => {
+        if (err) {
+          console.log(err);
+          return;
+        }
+
+        console.log("File saved:");
+      });
+      io.to(userId).emit("gambar", fileName);
+    });
 
     socket.on("message", (message, image) => {
       io.to(roomId).emit("createMessage", message, image, userName);
     });
 
-    socket.on("voice", function (data) {
-      var newData = data.split(";");
-      newData[0] = "data:audio/ogg;";
-      newData = newData[0] + newData[1];
+    socket.on("delete file", (file) => {
+      console.log(file);
 
-      // console.log("voice ", newData);
-      socket.broadcast.to(roomId).emit("send", newData);
+      if (fs.existsSync(path.join(__dirname, `./public/images/${file}`))) {
+        fs.unlinkSync(path.join(__dirname, `./public/images/${file}`));
+      }
+    });
+
+    socket.on("ijin masuk", (message, userAllow, idUser) => {
+      let participantUser = rooms[roomId].participants;
+
+      if (message === true) {
+        rooms[roomId].participants.push({ id: idUser, name: userAllow });
+      }
+      io.to(userAllow).emit("finale", message, userAllow, participantUser);
+      socket.to(roomId).emit("participants", participantUser);
+    });
+
+    socket.on("ask-join", async (userId, userName) => {
+      // Jika user belum meminta bergabung, maka simpan datanya
+      if (!joinRequests[userId]) {
+        joinRequests[userId] = true;
+
+        // Kirim pesan ke host room
+        await io.to(hostroom).emit("ijin host", userId, userName);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      // Hapus user dari daftar participants
+      rooms[roomId].participants = rooms[roomId].participants.filter(
+        (participant) => participant.id !== userId
+      );
+
+      // Emit event user-disconnected ke semua user di room
+      socket.to(roomId).broadcast.emit("user-disconnected", userId, userName);
     });
   });
-
-  // socket.on("disconnect", function () {
-  //   console.log("user keluar" + userId);
-
-  //   io.to(roomId).emit("keluar", userId);
-  // });
 });
 
 server.listen(3030, () => {

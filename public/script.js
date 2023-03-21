@@ -69,6 +69,7 @@ peer._debug = false;
 let myVideoStream;
 
 let AllUser = [];
+const mediaUser = [];
 
 navigator.mediaDevices
   .getUserMedia({
@@ -79,67 +80,68 @@ navigator.mediaDevices
     myVideoStream = stream;
     const addedUsers = [];
 
+    // console.log(myVideoStream);
+
     // punya user sendiri
     addVideoStream(myVideo, stream, user);
 
-    // peer.on("call", (call) => {
-    //   call.answer(stream, { test: "asdasd" });
+    const video = document.createElement("video");
 
-    //   const video = document.createElement("video");
+    peer.on("call", (call) => {
+      call.answer(stream);
 
-    //   call.on("stream", (userVideoStream) => {
-    //     // tambahkan user yang sudah terkoneksi
+      call.on("stream", (userVideoStream) => {
+        // console.log(userVideoStream);
+        // tambahkan user yang sudah terkoneksi
+        // tambahkan user baru
+        socket.on("participants", (userJoin) => {
+          userJoin.forEach((e) => {
+            // mediaUser.push({ id: e.name, stream: userVideoStream });
+            mediaUser.push(userVideoStream);
 
-    //     addedUsers.forEach((addedUser) => {
-    //       if (
-    //         $(document)
-    //           .find("#video-grid")
-    //           .find("video[id='" + addedUser + "']").length == 0
-    //       ) {
-    //         addVideoStream(
-    //           document.createElement("video"),
-    //           userVideoStream,
-    //           addedUser
-    //         );
-    //       } else {
-    //         // console.log(4);
-    //       }
-    //     });
+            let uniqueMediaUser = [...new Set(mediaUser)];
 
-    //   });
-    // });
+            uniqueMediaUser.map((i) => {
+              if (e.name !== user && !addedUsers.includes(e.name)) {
+                if (
+                  $(document)
+                    .find("#video-grid")
+                    .find("video[id='" + e.name + "']").length == 0
+                ) {
+                  addedUsers.push(e.name);
 
-    // tambahkan user baru
-    socket.on("participants", (userJoin) => {
-      userJoin.forEach((e) => {
-        // console.log(
-        //   $(document)
-        //     .find("#video-grid")
-        //     .find("video[id='" + e.name + "']")
-        // );
+                  // console.log(i);
 
-        // cek jika e.name dengan user sekarang
-        if (e.name !== user && !addedUsers.includes(e.name)) {
-          if (
-            $(document)
-              .find("#video-grid")
-              .find("video[id='" + e.name + "']").length == 0
-          ) {
-            addedUsers.push(e.name);
-            addVideoStream(
-              document.createElement("video"),
-              userVideoStream,
-              e.name
-            );
-          } else {
-            // console.log(3);
-          }
-        }
+                  // console.log(e.name, userVideoStream);
+                  addVideoStream(video, i, e.name);
+                } else {
+                  // console.log(3);
+                }
+              }
+            });
+
+            // cek jika e.name dengan user sekarang
+            // if (e.name !== user && !addedUsers.includes(e.name)) {
+            //   if (
+            //     $(document)
+            //       .find("#video-grid")
+            //       .find("video[id='" + e.name + "']").length == 0
+            //   ) {
+            //     addedUsers.push(e.name);
+
+            //     // console.log(e.name, userVideoStream);
+            //     addVideoStream(video, userVideoStream, e.name);
+            //   } else {
+            //     // console.log(3);
+            //   }
+            // }
+          });
+        });
       });
     });
 
     socket.on("user-connected", (userId, userName) => {
-      console.log(userName);
+      // console.log(userName);
       connectToNewUser(userId, stream, userName);
     });
   });
@@ -150,6 +152,10 @@ const connectToNewUser = (userId, stream, userName) => {
   userJoin.push(userName);
 
   socket.emit("ask-join", userId, userName);
+
+  // socket.on("wait to host", (message, userId, userName) => {
+  //   console.log(message, userId, userName);
+  // });
 
   const call = peer.call(userId, stream);
   const video = document.createElement("video");

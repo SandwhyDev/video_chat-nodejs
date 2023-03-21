@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Room</title>
+    <link rel="stylesheet" href="/css/Chat.css" />
+
+    <script src="https://kit.fontawesome.com/c939d0e917.js"></script>
+
+    <script>
+      const ROOM_ID = "<%= roomId %>";
+      const user = "<%= user %>";
+      const token = "<%= token %>";
+      const post_logout = "<%= post_logout %>";
+    </script>
+  </head>
+  <body>
+    <div class="header">
+      <div class="user_online">
+        <h5>total user join :</h5>
+        <a class="user"></a>
+      </div>
+
+      <div class="logo">
+        <div class="header__back">
+          <i class="fas fa-angle-left"></i>
+        </div>
+        <h3>Video Chat</h3>
+      </div>
+
+      <a href="/">
+        <img src="../log-out.png" class="keluar" alt="" width="40" height="40"
+      /></a>
+    </div>
+
+    <div class="main">
+      <div class="main__right">
+        <div class="main__chat_window">
+          <div class="messages"></div>
+        </div>
+        <div class="main__message_container">
+          <div id="image-container"></div>
+
+          <input
+            id="chat_message"
+            type="text"
+            autocomplete="off"
+            placeholder="Type message here..."
+          />
+          <div id="send" class="options__button">
+            <i class="fa fa-play" aria-hidden="true"></i>
+          </div>
+
+          <div id="send" class="options__button">
+            <input
+              id="photo"
+              name="photo"
+              class="custom-file-input"
+              type="file"
+            />
+
+            <!-- <i class="fa fa-plus" aria-hidden="true"> </i> -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/Chat.js"></script>
+  </body>
+</html>

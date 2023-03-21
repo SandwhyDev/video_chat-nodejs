@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="/css/WalkieTalkie.css" />
+  </head>
+  <script>
+    const ROOM_ID = "<%= roomId %>";
+    const user = "<%= user %>";
+  </script>
+  <body>
+    <div class="header">
+      <h1>Walkie-Talkie</h1>
+
+      <a href="/">
+        <img src="../log-out.png" class="keluar" alt="" width="40" height="40"
+      /></a>
+    </div>
+
+    <a class="play-button paused">
+      <div class="left"></div>
+      <div class="right"></div>
+      <div class="triangle-1"></div>
+      <div class="triangle-2"></div>
+    </a>
+    <div style="text-align: center">
+      <a>Total user online :</a>
+      <a class="usercount"></a>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="/js/WalkieTalkie.js"></script>
+  </body>
+</html>

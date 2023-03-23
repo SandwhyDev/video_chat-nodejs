@@ -7,6 +7,8 @@ const fs = require("fs");
 const { ExpressPeerServer } = require("peer");
 const path = require("path");
 const socketConn = require("./src/libs/socket");
+const ChatControllers = require("./src/controllers/ChatControllers");
+const RoomControllers = require("./src/controllers/RoomControllers");
 
 const app = express();
 const server = require("http").Server(app);
@@ -36,6 +38,7 @@ const isLoggedIn = (req, res, next) => {
 
 app.use("/peer", ExpressPeerServer(server, opinions));
 app.use(express.static("public"));
+app.use(express.json({ limit: "100mb" }));
 app.use(cookieParser());
 app.use(
   express.urlencoded({
@@ -155,19 +158,12 @@ app.get("/chat/:room", isLoggedIn, (req, res) => {
   });
 });
 
-// app.get("/", (req, res) => {
-//   // console.log(req.user.userinfo.sub);
-//   res.render("test");
-// });
-
-const rooms = {};
-const joinRequests = {};
-var Usercounter = 0;
-const userCountsByRoom = {};
-
 io.on("connection", (socket) => {
-  socketConn(socket, io);
+  socketConn(socket, io, fs, path);
 });
+
+app.use("/api", ChatControllers);
+app.use("/api", RoomControllers);
 
 server.listen(3030, () => {
   console.log("running on port 3030");

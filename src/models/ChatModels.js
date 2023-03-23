@@ -10,7 +10,7 @@ const createChat = (user, message, room_id) => {
       room_id: room_id,
     },
   }).then((res) => {
-    console.log("berhasil " + res);
+    // console.log("berhasil " + res);
   });
 };
 

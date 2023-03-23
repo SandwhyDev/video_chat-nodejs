@@ -1,11 +1,17 @@
 const createChat = require("../models/ChatModels");
-const createRoom = require("../models/RoomModels");
-
+const { createRoom } = require("../models/RoomModels");
 const rooms = {};
 const joinRequests = {};
 const userCountsByRoom = {};
+function uuidv4() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    var r = (Math.random() * 16) | 0,
+      v = c == "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
-const socketConn = (socket, io) => {
+const socketConn = (socket, io, fs, path) => {
   socket.on("join-room", (roomId, userId, userName, stream) => {
     // Jika room belum memiliki host, maka user yang bergabung akan menjadi host
     if (!rooms[roomId]) {
@@ -151,8 +157,6 @@ const socketConn = (socket, io) => {
 
     socket.on("message", (msg, image, room_id) => {
       io.to(roomId).emit("sendMessage", msg, image, user);
-
-      createChat(user, msg, room_id);
     });
 
     socket.on("send file", (file) => {
@@ -173,7 +177,7 @@ const socketConn = (socket, io) => {
     });
 
     socket.on("delete file", (file) => {
-      console.log(file);
+      // console.log(file);
 
       if (fs.existsSync(path.join(__dirname, `./public/images/${file}`))) {
         fs.unlinkSync(path.join(__dirname, `./public/images/${file}`));

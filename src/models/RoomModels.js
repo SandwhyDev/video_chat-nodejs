@@ -21,11 +21,14 @@ const createRoom = async (room_id, category) => {
     },
   })
     .then((res) => {
-      console.log("berhasil " + res);
+      // console.log("berhasil " + res);
     })
     .catch((err) => {
       console.log(err);
     });
 };
 
-module.exports = createRoom;
+module.exports = {
+  createRoom,
+  RoomModels,
+};

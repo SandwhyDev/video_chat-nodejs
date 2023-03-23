@@ -1,0 +1,112 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
+
+:root {
+  --main-darklg: #1d2635;
+  --main-dark: #161d29;
+  --primary-color: #2f80ec;
+  --main-light: #eeeeee;
+  font-family: "Poppins", sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--main-dark);
+}
+
+.container {
+  color: white;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  gap: 20px;
+}
+/* Menentukan tampilan overlay */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none; /* Menyembunyikan overlay */
+}
+
+/* Menentukan tampilan modal */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  display: none; /* Menyembunyikan modal */
+  color: black;
+}
+
+/* Menentukan tampilan tombol close */
+.close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  cursor: pointer;
+}
+
+.profile {
+  justify-content: center;
+  display: flex;
+  gap: 20px;
+}
+
+.ROOM {
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ruangan {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.child_room {
+  color: var(--main-light);
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.room_chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.room_chat a {
+  width: 120px;
+  padding: 10px;
+  border: 1px solid var(--primary-color);
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: var(--main-light);
+}
+
+.room_chat a:hover {
+  background-color: var(--primary-color);
+  border: 1px solid var(--main-dark);
+}
+
+button:hover {
+  cursor: pointer;
+}

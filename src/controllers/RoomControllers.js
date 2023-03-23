@@ -1,13 +1,13 @@
 const express = require("express");
-const { ChatModels } = require("../models/ChatModels");
+const { RoomModels } = require("../models/RoomModels");
 
-const ChatControllers = express.Router();
+const RoomControllers = express.Router();
 
-ChatControllers.post("/chat/create", async (req, res) => {
+RoomControllers.post("/room/create", async (req, res) => {
   try {
     const data = await req.body;
 
-    const create = await ChatModels.create({
+    const create = await RoomModels.create({
       data: {
         user: data.user,
         message: data.message,
@@ -27,18 +27,18 @@ ChatControllers.post("/chat/create", async (req, res) => {
   }
 });
 
-ChatControllers.post("/chat/read", async (req, res) => {
+RoomControllers.get("/room/read", async (req, res) => {
   try {
     const { page = 1, limit = 10 } = await req.query;
     const skip = (page - 1) * limit;
     const { filter } = await req.body;
-    const readUser = await ChatModels.findMany({
+    const readUser = await RoomModels.findMany({
       where: filter,
       skip: parseInt(skip),
       take: parseInt(limit),
     });
 
-    const cn = await ChatModels.count();
+    const cn = await RoomModels.count();
     res.status(200).json({
       currentPage: parseInt(page),
       total_page: Math.ceil(cn / limit),
@@ -54,4 +54,4 @@ ChatControllers.post("/chat/read", async (req, res) => {
   }
 });
 
-module.exports = ChatControllers;
+module.exports = RoomControllers;

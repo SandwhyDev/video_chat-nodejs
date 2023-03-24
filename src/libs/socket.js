@@ -11,8 +11,10 @@ function uuidv4() {
   });
 }
 
-const socketConn = (socket, io, fs, path) => {
+const socketConn = (socket, io, fs, path, fetch) => {
   socket.on("join-room", (roomId, userId, userName, stream) => {
+    createRoom(roomId, "VIDEO_CONFERENCE");
+
     // Jika room belum memiliki host, maka user yang bergabung akan menjadi host
     if (!rooms[roomId]) {
       rooms[roomId] = { host: userName, participants: [] };
@@ -31,16 +33,7 @@ const socketConn = (socket, io, fs, path) => {
     socket.join(userName);
 
     setTimeout(() => {
-      socket
-        .to(roomId)
-        .broadcast.emit(
-          "user-connected",
-          userId,
-          userName,
-          roomId,
-          hostroom,
-          stream
-        );
+      socket.to(roomId).broadcast.emit("user-connected", userId, userName, roomId, hostroom, stream);
     }, 1000);
 
     socket.on("send file", (file) => {
@@ -95,9 +88,7 @@ const socketConn = (socket, io, fs, path) => {
 
     socket.on("disconnect", () => {
       // Hapus user dari daftar participants
-      rooms[roomId].participants = rooms[roomId].participants.filter(
-        (participant) => participant.id !== userId
-      );
+      rooms[roomId].participants = rooms[roomId].participants.filter((participant) => participant.id !== userId);
 
       // Emit event user-disconnected ke semua user di room
       socket.to(roomId).broadcast.emit("user-disconnected", userId, userName);
@@ -106,6 +97,8 @@ const socketConn = (socket, io, fs, path) => {
 
   socket.on("join-room-walkie-talkie", (roomId) => {
     socket.join(roomId);
+
+    createRoom(roomId, "WALKIE-TALKIE");
 
     if (!userCountsByRoom[roomId]) {
       userCountsByRoom[roomId] = 0;
@@ -155,8 +148,21 @@ const socketConn = (socket, io, fs, path) => {
     // send user count to all users in the room
     io.to(roomId).emit("user", userCountsByRoom[roomId]);
 
-    socket.on("message", (msg, image, room_id) => {
-      io.to(roomId).emit("sendMessage", msg, image, user);
+    socket.on("message", (msg, image, room_id, user, mimetypeFoto, sizeFoto) => {
+      const data = {
+        user: user,
+        message: msg,
+        image: image,
+        room_id: room_id,
+      };
+
+      const foto = {
+        filename: image,
+        mimetype: mimetypeFoto,
+        sizeFoto: sizeFoto,
+      };
+
+      io.to(roomId).emit("sendMessage", msg, image, user, mimetypeFoto, sizeFoto);
     });
 
     socket.on("send file", (file) => {
@@ -172,8 +178,7 @@ const socketConn = (socket, io, fs, path) => {
         // console.log("File saved:");
       });
 
-      // console.log(fileName);
-      io.to(user).emit("gambar", fileName);
+      io.to(user).emit("gambar", fileName, file);
     });
 
     socket.on("delete file", (file) => {

@@ -1,11 +1,17 @@
 const express = require("express");
+const ImageChat = require("../libs/Multer");
+const uid = require("../libs/uuid");
 const { ChatModels } = require("../models/ChatModels");
+const PhotoChatModels = require("../models/PhotoChatModels");
 
 const ChatControllers = express.Router();
 
-ChatControllers.post("/chat/create", async (req, res) => {
+ChatControllers.post("/chat/create", ImageChat.single("foto"), async (req, res) => {
   try {
     const data = await req.body;
+    const file = await req.file;
+
+    console.log(file);
 
     const create = await ChatModels.create({
       data: {
@@ -14,6 +20,18 @@ ChatControllers.post("/chat/create", async (req, res) => {
         room_id: data.room_id,
       },
     });
+
+    if (file != undefined) {
+      await PhotoChatModels.create({
+        data: {
+          chat_id: create.id,
+          filename: file.filename,
+          mimetype: file.mimetype,
+          size: file.size,
+          image_path: `http://localhost:3030/images/${file.filename}`,
+        },
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -34,8 +52,9 @@ ChatControllers.post("/chat/read", async (req, res) => {
     const { filter } = await req.body;
     const readUser = await ChatModels.findMany({
       where: filter,
-      skip: parseInt(skip),
-      take: parseInt(limit),
+      include: {
+        photo: true,
+      },
     });
 
     const cn = await ChatModels.count();

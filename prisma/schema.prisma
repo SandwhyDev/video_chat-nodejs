@@ -15,7 +15,6 @@ model Room{
 
 
   chat           Chat[]
-  photoChat      photoChat[]
 }
 
 model Chat {
@@ -26,16 +25,22 @@ model Chat {
   createdAt DateTime  @default(now())
 
   room      Room?      @relation(fields: [room_id], references: [room_id], onDelete: Cascade)
+
+  photo     photoChat[]
 }
 
 model photoChat {
-  id        Int      @id @default(autoincrement())
-  filename  String?
-  mimetype  String?
-  size      Int?
-  room_id   String    @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime
+  id          Int      @id @default(autoincrement())
+  filename    String?
+  mimetype    String?
+  size        Int?   
+  chat_id     Int      
+  image_path  String?
+  createdAt   DateTime @default(now())
 
-  room      Room?      @relation(fields: [room_id], references: [room_id], onDelete: Cascade)
+  chat        Chat?    @relation(fields: [chat_id], references: [id], onDelete: Cascade)
+
 }
+
+
+

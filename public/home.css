@@ -107,6 +107,48 @@ body {
   border: 1px solid var(--main-dark);
 }
 
+.room_walkie_talkie {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.room_walkie_talkie a {
+  width: 120px;
+  padding: 10px;
+  border: 1px solid var(--primary-color);
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: var(--main-light);
+}
+
+.room_walkie_talkie a:hover {
+  background-color: var(--primary-color);
+  border: 1px solid var(--main-dark);
+}
+
+.room_video_conference {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.room_video_conference a {
+  width: 120px;
+  padding: 10px;
+  border: 1px solid var(--primary-color);
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: var(--main-light);
+}
+
+.room_video_conference a:hover {
+  background-color: var(--primary-color);
+  border: 1px solid var(--main-dark);
+}
+
 button:hover {
   cursor: pointer;
 }

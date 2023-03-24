@@ -82,17 +82,43 @@ fetch("http://localhost:3030/api/room/read")
   .then((response) => response.json())
   .then((data) =>
     data.query.map((e) => {
-      const roomChat = document.querySelector(".room_chat");
+      console.log(e);
 
-      // Create the <a> element and set its attributes
-      const roomLink = document.createElement("a");
-      roomLink.href = `/chat/${e.room_id}`;
-      roomLink.textContent = e.room_id;
+      if (e.category === "VIDEO_CONFERENCE") {
+        const roomChat = document.querySelector(".room_video_conference");
 
-      // Append the <a> element to the room_chat element
-      roomChat.appendChild(roomLink);
+        // Create the <a> element and set its attributes
+        const roomLink = document.createElement("a");
+        roomLink.href = `/video/${e.room_id}`;
+        roomLink.textContent = e.room_id;
+
+        // Append the <a> element to the room_chat element
+        roomChat.appendChild(roomLink);
+      }
+
+      if (e.category === "CHAT") {
+        const roomChat = document.querySelector(".room_chat");
+
+        // Create the <a> element and set its attributes
+        const roomLink = document.createElement("a");
+        roomLink.href = `/chat/${e.room_id}`;
+        roomLink.textContent = e.room_id;
+
+        // Append the <a> element to the room_chat element
+        roomChat.appendChild(roomLink);
+      }
+
+      if (e.category === "WALKIE-TALKIE") {
+        const roomChat = document.querySelector(".room_walkie_talkie");
+
+        // Create the <a> element and set its attributes
+        const roomLink = document.createElement("a");
+        roomLink.href = `/walkie-talkie/${e.room_id}`;
+        roomLink.textContent = e.room_id;
+
+        // Append the <a> element to the room_chat element
+        roomChat.appendChild(roomLink);
+      }
     })
   )
   .catch((error) => console.error(error));
-
-console.log("test");

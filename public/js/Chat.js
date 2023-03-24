@@ -1,5 +1,25 @@
 var socket = io();
 
+function parseTime(timeString) {
+  // Memecah string waktu menjadi komponen tanggal dan waktu
+  const [dateString, time] = timeString.split("T");
+
+  // Memecah komponen tanggal menjadi komponen tahun, bulan, dan hari
+  const [year, month, day] = dateString.split("-");
+
+  // Memecah komponen waktu menjadi komponen jam, menit, dan detik
+  const [hour, minute, second] = time.slice(0, -1).split(":");
+
+  // Membuat objek Date baru dari komponen tanggal dan waktu
+  const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+
+  // Mengembalikan objek Date dalam format tanggal, bulan, tahun, dan waktu
+  return {
+    date: date.toLocaleDateString(),
+    time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+  };
+}
+
 socket.on("connect", () => {
   socket.emit("join-room-chat", ROOM_ID, user, ROOM_CATEGORY);
 });
@@ -20,6 +40,8 @@ let messages = document.querySelector(".messages");
 let imageTest = document.querySelector("#photo");
 const imageimage = $("#photo");
 var sendFoto = "";
+var mimetypeFoto = "";
+var sizeFoto = "";
 
 function batalSendImage(filename) {
   socket.emit("delete file", filename);
@@ -29,6 +51,7 @@ function batalSendImage(filename) {
 
 imageimage.on("change", () => {
   const file = imageimage[0].files[0];
+
   let filename = URL.createObjectURL(file);
 
   const reader = new FileReader();
@@ -37,6 +60,7 @@ imageimage.on("change", () => {
 
   reader.onload = () => {
     socket.emit("send file", {
+      file: file,
       name: file.name,
       data: reader.result,
       size: file.size,
@@ -44,16 +68,14 @@ imageimage.on("change", () => {
     });
   };
 
-  socket.on("gambar", (file) => {
-    console.log(file);
-    sendFoto = file;
+  socket.on("gambar", (gambar, file) => {
+    sendFoto = gambar;
+    mimetypeFoto = file.mimetype;
+    sizeFoto = file.size;
 
-    const image = $("<img>").attr(
-      "src",
-      `http://localhost:3030/images/${file}`
-    );
+    const image = $("<img>").attr("src", `http://localhost:3030/images/${gambar}`);
 
-    const BatalSend = `<p class="batal-send-image" onclick="batalSendImage('${file}')">X</p>`;
+    const BatalSend = `<p class="batal-send-image" onclick="batalSendImage('${gambar}')">X</p>`;
 
     foto.html(image).append(BatalSend);
   });
@@ -61,17 +83,17 @@ imageimage.on("change", () => {
 
 send.addEventListener("click", async (e) => {
   if (text.value.length !== 0 && sendFoto != null) {
-    socket.emit("message", text.value, sendFoto, ROOM_ID);
+    socket.emit("message", text.value, sendFoto, ROOM_ID, user);
 
-    // console.log(foto);
+    // console.log(mimetypeFoto, sizeFoto);
     text.value = await "";
     await foto.empty();
     sendFoto = await "";
   } else if (text.value.length === 0 && sendFoto === null) {
     return false;
   } else if (sendFoto.length != 0 && text.value.length === 0) {
-    console.log(sendFoto.length);
-    socket.emit("message", text.value, sendFoto, ROOM_ID);
+    // console.log(sendFoto.length);
+    socket.emit("message", text.value, sendFoto, ROOM_ID, user, mimetypeFoto, sizeFoto);
     // console.log("test foto doang");
     await foto.empty();
 
@@ -92,32 +114,47 @@ text.addEventListener("keydown", (e) => {
   }
 });
 
-socket.on("sendMessage", (message, sendFoto, userName) => {
-  console.log({
-    user: user,
-    message: message,
-    photo: sendFoto,
-  });
+socket.on("sendMessage", (message, sendFoto, userName, mimetypeFoto, sizeFoto) => {
+  const file = imageTest.files[0];
+
+  console.log(file);
+  const foto = {
+    name: sendFoto,
+    mimetype: mimetypeFoto,
+    size: sizeFoto,
+  };
 
   const data = {
     user: user,
     message: message,
     room_id: ROOM_ID,
+    foto: foto,
   };
 
-  fetch("http://localhost:3030/api/chat/create", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  })
-    .then((response) => response.json())
-    .then((data) => console.log())
-    .catch((error) => console.error(error));
+  if (data.user === userName) {
+    const formData = new FormData();
+    formData.append("user", userName);
+    formData.append("message", message);
+    formData.append("room_id", ROOM_ID);
+    formData.append("foto", file);
 
-  //   console.log(userName, message.length);
-  //   console.log("foto ", sendFoto);
+    fetch("http://localhost:3030/api/chat/create", {
+      method: "POST",
+      // headers: {
+      //   "Content-Type": "application/json",
+      // },
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((data) => console.log(data))
+      .catch((error) => console.error(error));
+  }
+
+  const date = new Date();
+  const time = date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   if (sendFoto.length != 0 && message.length != 0) {
     // console.log("test foto dan text");
@@ -127,52 +164,53 @@ socket.on("sendMessage", (message, sendFoto, userName) => {
         ? (messages.innerHTML =
             messages.innerHTML +
             `<div class="message" id="chatsaya">
-        <b><i class="far fa-user-circle"></i> <span> ${
-          userName === user ? "me" : userName
-        }</span> </b>
+        <b><i class="far fa-user-circle"></i> <span> ${userName === user ? "me" : userName}</span> </b>
         <div class="image_message">
-             <img src="http://localhost:3030/images/${sendFoto}" alt="Girl in a jacket" >
+             <img src="http://localhost:3030/images/${sendFoto}" alt="foto_message" >
              </div>
 
         <span>${message} </span>
+        <p class="time_message">${time}</p>
+
     </div>`)
         : (messages.innerHTML =
             messages.innerHTML +
             `<div class="message">
-      <b><i class="far fa-user-circle"></i> <span> ${
-        userName === user ? "me" : userName
-      }</span> </b>
+      <b><i class="far fa-user-circle"></i> <span> ${userName === user ? "me" : userName}</span> </b>
       <div class="image_message">
-           <img src="http://localhost:3030/images/${sendFoto}" alt="Girl in a jacket" >
+           <img src="http://localhost:3030/images/${sendFoto}" alt="foto_message" >
            </div>
 
       <span>${message} </span>
+      <p class="time_message">${time}</p>
+
   </div>`);
     }
     return;
   } else if (sendFoto.length != 0 && message.length === 0) {
-    console.log("test foto doang");
+    // KIRIM FOTO TANPA MESSAGE
+
     {
       userName === user
         ? (messages.innerHTML =
             messages.innerHTML +
             `<div class="message" id="chatsaya">
-        <b><i class="far fa-user-circle"></i> <span> ${
-          userName === user ? "me" : userName
-        }</span> </b>
+        <b><i class="far fa-user-circle"></i> <span> ${userName === user ? "me" : userName}</span> </b>
         <div class="image_message">
-             <img src="http://localhost:3030/images/${sendFoto}" alt="Girl in a jacket" >
+             <img src="http://localhost:3030/images/${sendFoto}" alt="foto_message" >
+      <p class="time_message">${time}</p>
+
              </div>
 
     </div>`)
         : (messages.innerHTML =
             messages.innerHTML +
             `<div class="message">
-      <b><i class="far fa-user-circle"></i> <span> ${
-        userName === user ? "me" : userName
-      }</span> </b>
+      <b><i class="far fa-user-circle"></i> <span> ${userName === user ? "me" : userName}</span> </b>
       <div class="image_message">
-           <img src="http://localhost:3030/images/${sendFoto}" alt="Girl in a jacket" >
+           <img src="http://localhost:3030/images/${sendFoto}" alt="foto_message" >
+      <p class="time_message">${time}</p>
+
            </div>
 
   </div>`);
@@ -184,18 +222,18 @@ socket.on("sendMessage", (message, sendFoto, userName) => {
         ? (messages.innerHTML =
             messages.innerHTML +
             `<div class="message" id="chatsaya">
-        <b><i class="far fa-user-circle"></i> <span> ${
-          userName === user ? "me" : userName
-        }</span> </b>
+        <b><i class="far fa-user-circle"></i> <span> ${userName === user ? "me" : userName}</span> </b>
         <span>${message}</span>
+        <p class="time_message">${time}</p>
+
     </div>`)
         : (messages.innerHTML =
             messages.innerHTML +
             `<div class="message">
-      <b><i class="far fa-user-circle"></i> <span> ${
-        userName === user ? "me" : userName
-      }</span> </b>
+      <b><i class="far fa-user-circle"></i> <span> ${userName === user ? "me" : userName}</span> </b>
       <span>${message} </span>
+      <p class="time_message">${time}</p>
+
   </div>`);
     }
     return;
@@ -218,26 +256,96 @@ fetch("http://localhost:3030/api/chat/read", {
   .then((response) => response.json())
   .then((data) =>
     data.query.map((e) => {
-      {
-        e.user === user
-          ? (messages.innerHTML =
-              messages.innerHTML +
-              `<div class="message" id="chatsaya">
-          <b><i class="far fa-user-circle"></i> <span> ${
-            e.user === user ? "me" : e.user
-          }</span> </b>
-          <span>${e.message}</span>
+      const { date, time } = parseTime(e.createdAt);
+
+      if (e.photo.length > 0 && e.message.length > 0) {
+        // kirim foto dan message
+        {
+          e.user === user
+            ? (messages.innerHTML =
+                messages.innerHTML +
+                `<div class="message" id="chatsaya">
+          <b><i class="far fa-user-circle"></i> <span> ${e.user === user ? "me" : e.user}</span> </b>
+          <div class="image_message">
+               <img src="${e.photo[0].image_path}" alt="foto_message" >
+               </div>
+  
+          <span>${e.message} </span>
+          <p class="time_message">${time}</p>
+
       </div>`)
-          : (messages.innerHTML =
-              messages.innerHTML +
-              `<div class="message">
-        <b><i class="far fa-user-circle"></i> <span> ${
-          e.user === user ? "me" : e.user
-        }</span> </b>
+            : (messages.innerHTML =
+                messages.innerHTML +
+                `<div class="message">
+        <b><i class="far fa-user-circle"></i> <span> ${e.user === user ? "me" : e.user}</span> </b>
+        <div class="image_message">
+             <img src="${e.photo[0].image_path}" alt="foto_message" >
+             </div>
+  
         <span>${e.message} </span>
+        <p class="time_message">${time}</p>
+
     </div>`);
+        }
+        return;
+      } else if (e.photo.length > 0 && e.message.length === 0) {
+        // KIRIM FOTO TANPA MESSAGE
+
+        {
+          e.user === user
+            ? (messages.innerHTML =
+                messages.innerHTML +
+                `<div class="message" id="chatsaya">
+          <b><i class="far fa-user-circle"></i> <span> ${e.user === user ? "me" : e.user}</span> </b>
+          <div class="image_message">
+               <img src="${e.photo[0].image_path}" alt="foto_message" >
+          <p class="time_message">${time}</p>
+
+               </div>
+  
+      </div>`)
+            : (messages.innerHTML =
+                messages.innerHTML +
+                `<div class="message">
+        <b><i class="far fa-user-circle"></i> <span> ${e.user === user ? "me" : e.user}</span> </b>
+        <div class="image_message">
+             <img src="${e.photo[0].image_path}" alt="foto_message" >
+          <p class="time_message">${time}</p>
+
+             </div>
+  
+    </div>`);
+        }
+        return;
+      } else if (e.photo.length === 0 && e.message.length > 0) {
+        // KIRIM MESSAGE TANPA FOTO
+        const date = new Date(e.createdAt);
+        const time = date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        {
+          e.user === user
+            ? (messages.innerHTML =
+                messages.innerHTML +
+                `<div class="message" id="chatsaya">
+          <b><i class="far fa-user-circle"></i> <span> ${e.user === user ? "me" : e.user}</span> </b>
+          <span>${e.message}</span>
+          <p class="time_message">${time}</p>
+  
+      </div>`)
+            : (messages.innerHTML =
+                messages.innerHTML +
+                `<div class="message">
+        <b><i class="far fa-user-circle"></i> <span> ${e.user === user ? "me" : e.user}</span> </b>
+        <span>${e.message} </span>
+        <p class="time_message">${time}</p>
+  
+    </div>`);
+        }
+        return;
       }
-      return;
     })
   )
   .catch((error) => console.error(error));

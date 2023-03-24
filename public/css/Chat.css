@@ -118,6 +118,8 @@ video {
 }
 
 .main__chat_window {
+  display: flex;
+  flex-direction: column-reverse; /* Chat ditampilkan dari bawah ke atas */
   flex-grow: 1;
   overflow-y: scroll;
 }
@@ -147,6 +149,7 @@ video {
   display: flex;
   flex-direction: column;
   margin: 1.5rem;
+  gap: 50px;
 }
 
 .message {
@@ -258,4 +261,8 @@ video {
 .keluar {
   transform: rotate(180deg);
   transform: rotateY(180deg);
+}
+
+.time_message {
+  color: gray;
 }

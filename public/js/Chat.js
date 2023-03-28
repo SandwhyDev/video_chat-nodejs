@@ -117,7 +117,7 @@ text.addEventListener("keydown", (e) => {
 socket.on("sendMessage", (message, sendFoto, userName, mimetypeFoto, sizeFoto) => {
   const file = imageTest.files[0];
 
-  console.log(file);
+  console.log(ROOM_ID);
   const foto = {
     name: sendFoto,
     mimetype: mimetypeFoto,

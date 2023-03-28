@@ -131,7 +131,7 @@ const socketConn = (socket, io, fs, path, fetch) => {
     socket.join(roomId);
     socket.join(user);
 
-    createRoom(roomId, roomCategory);
+    createRoom(roomId, roomCategory, user);
 
     if (!userCountsByRoom[roomId]) {
       userCountsByRoom[roomId] = 0;

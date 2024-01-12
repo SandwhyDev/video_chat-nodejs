@@ -95,8 +95,6 @@ fetch("http://localhost:3030/api/room/read", {
     // console.log(data);
 
     data.query.map((e) => {
-      // console.log(e);
-
       if (e.category === "VIDEO_CONFERENCE") {
         const roomChat = document.querySelector(".room_video_conference");
 
@@ -120,8 +118,9 @@ fetch("http://localhost:3030/api/room/read", {
         // Append the <a> element to the room_chat element
         roomChat.appendChild(roomLink);
       }
+      console.log(e);
 
-      if (e.category === "WALKIE-TALKIE") {
+      if (e.category === "WALKIE TALKIE") {
         const roomChat = document.querySelector(".room_walkie_talkie");
 
         // Create the <a> element and set its attributes

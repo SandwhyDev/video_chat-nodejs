@@ -13,7 +13,7 @@ function uuidv4() {
 
 const socketConn = (socket, io, fs, path, fetch) => {
   socket.on("join-room", (roomId, userId, userName, stream) => {
-    createRoom(roomId, "VIDEO_CONFERENCE");
+    createRoom(roomId, "VIDEO_CONFERENCE", userName);
 
     // Jika room belum memiliki host, maka user yang bergabung akan menjadi host
     if (!rooms[roomId]) {
@@ -95,10 +95,12 @@ const socketConn = (socket, io, fs, path, fetch) => {
     });
   });
 
-  socket.on("join-room-walkie-talkie", (roomId) => {
+  socket.on("join-room-walkie-talkie", (roomId, user, roomCategory) => {
     socket.join(roomId);
 
-    createRoom(roomId, "WALKIE-TALKIE");
+    console.log(roomId, user, roomCategory);
+
+    createRoom(roomId, roomCategory, user);
 
     if (!userCountsByRoom[roomId]) {
       userCountsByRoom[roomId] = 0;

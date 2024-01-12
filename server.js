@@ -9,8 +9,12 @@ const path = require("path");
 const socketConn = require("./src/libs/socket");
 const ChatControllers = require("./src/controllers/ChatControllers");
 const RoomControllers = require("./src/controllers/RoomControllers");
+const env = require("dotenv");
+
+env.config();
 
 const app = express();
+const { PORT, URL_OIDC } = process.env;
 const server = require("http").Server(app);
 
 app.set("view engine", "ejs");
@@ -69,37 +73,33 @@ passport.deserializeUser((user, done) => {
   done(null, user);
 });
 
-Issuer.discover("http://localhost:9000/oidc").then(function (oidcIssuer) {
+Issuer.discover(URL_OIDC).then(function (oidcIssuer) {
   var client = new oidcIssuer.Client({
-    client_id: "Zu72QiCTlzAogmqCSr_-P",
-    client_secret:
-      "aykcnCVE8YqtkrPGBrGrgTu87M3kB0sCT1-cirm-CYLvN9a-6_FevnAYHmYSSnw7nd8t9KzWbXKKid9lrdVQiw",
-    grant_types: ["refresh_token", "authorization_code"],
-    redirect_uris: ["http://localhost:3030/login/callback"],
+    client_id: "PPZ3PeimtxmWHQCZf5A2m",
+    client_secret: "HaVNOf3bXskcCNz6lflCzwXb3psrRaPi7CzqDDB_DlBe_OnExGQC5MnDtOnojHMOLGM5wBETAWCJKjCzkO04Ug",
+    grant_types: ["authorization_code"],
+    redirect_uris: [`http://localhost:${PORT}/login/callback`],
     response_types: ["code"],
-    post_logout_redirect_uris: ["http://localhost:3030"],
+    post_logout_redirect_uris: [`http://localhost:${PORT}`],
   });
 
   passport.use(
     "oidc",
-    new Strategy(
-      { client, passReqToCallback: true },
-      (req, tokenSet, userinfo, done) => {
-        // console.log("tokenSet", tokenSet);
-        // console.log("userinfo", userinfo);
+    new Strategy({ client, passReqToCallback: true }, (req, tokenSet, userinfo, done) => {
+      // console.log("tokenSet", tokenSet);
+      // console.log("userinfo", userinfo);
 
-        const result = {
-          tokenSet: tokenSet,
-          userinfo: userinfo,
-          rahasia: client,
-        };
-        req.session.tokenSet = tokenSet;
-        req.session.userinfo = userinfo;
-        req.session.rahasia = client;
+      const result = {
+        tokenSet: tokenSet,
+        userinfo: userinfo,
+        rahasia: client,
+      };
+      req.session.tokenSet = tokenSet;
+      req.session.userinfo = userinfo;
+      req.session.rahasia = client;
 
-        return done(null, result);
-      }
-    )
+      return done(null, result);
+    })
   );
 });
 
@@ -165,6 +165,6 @@ io.on("connection", (socket) => {
 app.use("/api", ChatControllers);
 app.use("/api", RoomControllers);
 
-server.listen(3030, () => {
-  console.log("running on port 3030");
+server.listen(PORT, () => {
+  console.log(`running on port ${PORT}`);
 });
